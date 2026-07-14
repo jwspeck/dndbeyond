@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         D&D Beyond — Hand Tracker
 // @namespace    https://claude.ai/dndbeyond-toolkit
-// @version      1.0.0
-// @description  Tracks what's in each hand on a character sheet, plus the once-per-turn object interaction and attack-linked draw/stow
+// @version      1.1.0
+// @description  Tracks what's in each hand on a character sheet, plus the once-per-turn object interaction, attack-linked draw/stow, and full-Action equips (like donning/doffing a shield)
 // @author       you
 // @match        https://www.dndbeyond.com/characters/*
 // @run-at       document-idle
@@ -26,7 +26,7 @@
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
       if (parsed && parsed.hands) return parsed;
     } catch {}
-    return { hands: { left: "Empty", right: "Empty" }, turn: { objectUsed: false, attackUsed: false }, log: [] };
+    return { hands: { left: "Empty", right: "Empty" }, turn: { objectUsed: false, attackUsed: false, actionUsed: false }, log: [] };
   }
   function saveState(state) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -142,8 +142,17 @@
         promptLabel.textContent = `Switch to ${state.pending.value} using:`;
         prompt.appendChild(promptLabel);
 
+        const shieldInvolved = state.pending.value === "Shield" || state.hands[hand] === "Shield";
+        if (shieldInvolved) {
+          const shieldHint = document.createElement("div");
+          shieldHint.className = "ht-tagprompt-label";
+          shieldHint.textContent = "Donning/doffing a shield normally costs an Action.";
+          prompt.appendChild(shieldHint);
+        }
+
         const tags = [
           { key: "object", label: "🎯 Object Interaction (once/turn)" },
+          { key: "action", label: "🎬 Action (e.g. don/doff shield)" },
           { key: "attack", label: "⚔️ Draw/stow with attack" },
           { key: "free", label: "✅ Free (no cost)" },
         ];
@@ -158,7 +167,11 @@
             applyHandChange(state, hand, to);
             if (tag.key === "object") state.turn.objectUsed = true;
             if (tag.key === "attack") state.turn.attackUsed = true;
-            const tagText = tag.key === "object" ? "object interaction" : tag.key === "attack" ? "attack draw/stow" : "free";
+            if (tag.key === "action") state.turn.actionUsed = true;
+            const tagText =
+              tag.key === "object" ? "object interaction" :
+              tag.key === "attack" ? "attack draw/stow" :
+              tag.key === "action" ? "action" : "free";
             addLogEntry(state, `<b>${hand === "left" ? "Left" : "Right"}</b>: ${from} → ${to} (${tagText})`);
             state.pending = null;
             saveState(state);
@@ -218,6 +231,21 @@
     });
     objRow.append(objLabel, objBtn);
 
+    const actionRow = document.createElement("div");
+    actionRow.className = "ht-turn-row";
+    const actionLabel = document.createElement("span");
+    actionLabel.textContent = "Action";
+    const actionBtn = document.createElement("button");
+    actionBtn.type = "button";
+    actionBtn.className = `ht-resource ${state.turn.actionUsed ? "ht-used" : "ht-available"}`;
+    actionBtn.textContent = state.turn.actionUsed ? "Used" : "Available";
+    actionBtn.addEventListener("click", () => {
+      state.turn.actionUsed = !state.turn.actionUsed;
+      saveState(state);
+      render(root, state);
+    });
+    actionRow.append(actionLabel, actionBtn);
+
     const atkRow = document.createElement("div");
     atkRow.className = "ht-turn-row";
     const atkLabel = document.createElement("span");
@@ -240,11 +268,12 @@
     newTurnBtn.addEventListener("click", () => {
       state.turn.objectUsed = false;
       state.turn.attackUsed = false;
+      state.turn.actionUsed = false;
       saveState(state);
       render(root, state);
     });
 
-    turn.append(objRow, atkRow, newTurnBtn);
+    turn.append(objRow, actionRow, atkRow, newTurnBtn);
     root.appendChild(turn);
 
     const log = document.createElement("div");

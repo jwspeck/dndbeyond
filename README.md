@@ -22,6 +22,14 @@ Adds a "My Characters" quick-launch panel to the D&D Beyond home page (`dndbeyon
 - The character list has no public API, so this script builds a cache the natural way: whenever you visit your own `/characters` page, it silently reads the character cards already rendered there and saves them locally. Visit that page once after installing to populate the list.
 - Works for any player who installs it — nothing is hardcoded per-account
 
+### [dndbeyond-hand-tracker.user.js](dndbeyond-hand-tracker.user.js)
+
+Adds a small "Hands" panel (docked bottom-right) to every character sheet, for tracking what's in each hand during play — Empty, Shield, Flail, Longsword, or Greatsword (which occupies both hands automatically).
+
+- Changing a hand prompts you to tag *how* — once-per-turn Object Interaction, an attack-linked draw/stow, or free (no cost) — and logs the last few changes
+- Separate "Object Interaction" / "Attack Draw/Stow" indicators you toggle Available ↔ Used, with a "New Turn" button to reset both
+- State is saved per character (keyed by the character ID in the URL), so each character tracks their own loadout independently
+
 ## Install
 
 1. Install the [Tampermonkey](https://www.tampermonkey.net/) browser extension.
@@ -30,4 +38,4 @@ Adds a "My Characters" quick-launch panel to the D&D Beyond home page (`dndbeyon
 
 ## Updating
 
-Both scripts are self-contained with no build step. To update after a change, re-import the file in Tampermonkey (or paste the new contents into the script's editor and save), then refresh any open D&D Beyond tabs.
+All scripts are self-contained with no build step. To update after a change, re-import the file in Tampermonkey (or paste the new contents into the script's editor and save), then refresh any open D&D Beyond tabs.
